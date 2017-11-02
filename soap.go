@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"net/http/httputil"
+	"log"
 )
 
 // Params type is used to set the params in soap request
-type Params map[string]string
+type Params map[string]interface{}
+//type Params map[string]string
 
 // SoapClient return new *Client to handle the requests with the WSDL
 func SoapClient(wsdl string) (*Client, error) {
@@ -37,19 +40,29 @@ func SoapClient(wsdl string) (*Client, error) {
 // Client struct hold all the informations about WSDL,
 // request and response of the server
 type Client struct {
-	WSDL        string
-	URL         string
-	Method      string
-	Params      Params
-	Definitions *wsdlDefinitions
-	Body        []byte
+	debugHTTPRequest    bool
+	debugHTTPResponse   bool
+	WSDL                string
+	URL                 string
+	Method              string
+	MethodPath          string
+	Params              Params
+	Definitions         *wsdlDefinitions
+	Body                []byte
 
 	payload []byte
 }
 
 // Call call's the method m with Params p
-func (c *Client) Call(m string, p Params) (err error) {
-	c.Method = m
+func (c *Client) Call(p Params, m ...string) (err error) {
+	method, m := m[len(m)-1], m[:len(m)-1]
+	path := strings.Join(m, "/")
+	if len(path) > 0 {
+		path += "/"
+	}
+
+	c.Method = method
+	c.MethodPath = path
 	c.Params = p
 
 	c.payload, err = xml.MarshalIndent(c, "", "")
@@ -99,11 +112,18 @@ func (c *Client) doRequest() ([]byte, error) {
 
 	req.Header.Add("Content-Type", "text/xml;charset=UTF-8")
 	req.Header.Add("Accept", "text/xml")
-	req.Header.Add("SOAPAction", fmt.Sprintf("%s/%s", c.URL, c.Method))
-
+	req.Header.Add("SOAPAction", fmt.Sprintf("%s/%s%s", c.URL, c.MethodPath, c.Method))
+	if (c.debugHTTPRequest) {
+		fmt.Println("Dump Request")
+		c.debugHTTPOutput(httputil.DumpRequestOut(req, true))
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if (c.debugHTTPResponse) {
+		fmt.Println("Dump Response")
+		c.debugHTTPOutput(httputil.DumpResponse(resp, true))
 	}
 	defer resp.Body.Close()
 
@@ -120,4 +140,29 @@ type SoapEnvelope struct {
 type SoapBody struct {
 	XMLName  struct{} `xml:"Body"`
 	Contents []byte   `xml:",innerxml"`
+}
+
+
+func (c *Client) EnableResponseDebug() {
+	c.debugHTTPResponse = true;
+}
+
+func (c *Client) DisableResponseDebug() {
+	c.debugHTTPResponse = false;
+}
+
+func (c *Client) EnableRequestDebug() {
+	c.debugHTTPRequest = true;
+}
+
+func (c *Client) DisableRequestDebug() {
+	c.debugHTTPRequest = false;
+}
+
+func (c *Client) debugHTTPOutput(data []byte, err error) {
+	if err == nil {
+		fmt.Printf("%s\n\n", data)
+	} else {
+		log.Fatalf("%s\n\n", err)
+	}
 }
