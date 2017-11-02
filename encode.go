@@ -1,8 +1,10 @@
 package gosoap
 
 import (
+	"github.com/fatih/structs"
 	"encoding/xml"
 	"fmt"
+	"strconv"
 )
 
 var tokens []xml.Token
@@ -26,15 +28,9 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	}
 
 	for k, v := range c.Params {
-		t := xml.StartElement{
-			Name: xml.Name{
-				Space: "",
-				Local: k,
-			},
-		}
-
-		tokens = append(tokens, t, xml.CharData(v), xml.EndElement{Name: t.Name})
+		tokens = deepMarshal(tokens, k, v)
 	}
+
 	//end envelope
 	endToken(c.Method)
 
@@ -46,6 +42,39 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	}
 
 	return e.Flush()
+}
+
+func deepMarshal(slice []xml.Token, k string, v interface{}) []xml.Token {
+	ts := xml.StartElement{
+		Name: xml.Name{
+			Space: "",
+			Local: k,
+		},
+	}
+
+	te := xml.EndElement{Name: ts.Name}
+
+	switch v.(type) {
+		case int:
+			tokens = append(tokens, ts, xml.CharData(strconv.Itoa(v.(int))), te)
+			break
+		case string:
+			if v.(string) == "" {
+				break
+			}
+			tokens = append(tokens, ts, xml.CharData(v.(string)), te)
+			break
+		case interface{}:
+			tv := structs.Map(v)
+			tokens = append(tokens, ts)
+			for dk, dv := range tv {
+				tokens = deepMarshal(tokens, dk, dv)
+			}
+			tokens = append(tokens, te)
+			break
+	}
+
+	return tokens
 }
 
 // startToken initiate body of the envelope
