@@ -142,7 +142,6 @@ type SoapBody struct {
 	Contents []byte   `xml:",innerxml"`
 }
 
-
 func (c *Client) EnableResponseDebug() {
 	c.debugHTTPResponse = true;
 }

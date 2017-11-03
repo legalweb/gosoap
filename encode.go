@@ -12,7 +12,7 @@ var tokens []xml.Token
 // MarshalXML envelope the body and encode to xml
 func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	if len(c.Params) == 0 {
-		return fmt.Errorf("Params is empty")
+		return fmt.Errorf("params is empty")
 	}
 
 	tokens = []xml.Token{}
@@ -28,7 +28,7 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	}
 
 	for k, v := range c.Params {
-		tokens = deepMarshal(tokens, k, v)
+		tokens = deepMarshal(k, v)
 	}
 
 	//end envelope
@@ -44,7 +44,7 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	return e.Flush()
 }
 
-func deepMarshal(slice []xml.Token, k string, v interface{}) []xml.Token {
+func deepMarshal(k string, v interface{}) []xml.Token {
 	ts := xml.StartElement{
 		Name: xml.Name{
 			Space: "",
@@ -64,11 +64,22 @@ func deepMarshal(slice []xml.Token, k string, v interface{}) []xml.Token {
 			}
 			tokens = append(tokens, ts, xml.CharData(v.(string)), te)
 			break
+		case bool:
+			tokens = append(tokens, ts, xml.CharData(strconv.FormatBool(v.(bool))), te)
+			break
+		case map[string]interface{}:
+		case []interface{}:
+			tokens = append(tokens, ts)
+			for dk, dv := range v.(map[string]interface{}) {
+				tokens = deepMarshal(dk, dv)
+			}
+			tokens = append(tokens, te)
+			break
 		case interface{}:
 			tv := structs.Map(v)
 			tokens = append(tokens, ts)
 			for dk, dv := range tv {
-				tokens = deepMarshal(tokens, dk, dv)
+				tokens = deepMarshal(dk, dv)
 			}
 			tokens = append(tokens, te)
 			break
