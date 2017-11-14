@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"strconv"
+	"reflect"
+	"math/big"
 )
 
 var tokens []xml.Token
@@ -28,7 +30,10 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	}
 
 	for k, v := range c.Params {
-		tokens = deepMarshal(k, v)
+		err := deepMarshal(k, v)
+		if err != nil {
+			return err
+		}
 	}
 
 	//end envelope
@@ -44,7 +49,7 @@ func (c Client) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 	return e.Flush()
 }
 
-func deepMarshal(k string, v interface{}) []xml.Token {
+func deepMarshal(k string, v interface{}) error {
 	ts := xml.StartElement{
 		Name: xml.Name{
 			Space: "",
@@ -55,6 +60,10 @@ func deepMarshal(k string, v interface{}) []xml.Token {
 	te := xml.EndElement{Name: ts.Name}
 
 	switch v.(type) {
+		case big.Rat:
+			bigRat := v.(big.Rat)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigRat.FloatString(16))), te)
+			break
 		case int:
 			tokens = append(tokens, ts, xml.CharData(strconv.Itoa(v.(int))), te)
 			break
@@ -68,24 +77,44 @@ func deepMarshal(k string, v interface{}) []xml.Token {
 			tokens = append(tokens, ts, xml.CharData(strconv.FormatBool(v.(bool))), te)
 			break
 		case map[string]interface{}:
-		case []interface{}:
 			tokens = append(tokens, ts)
 			for dk, dv := range v.(map[string]interface{}) {
-				tokens = deepMarshal(dk, dv)
+				deepMarshal(dk, dv)
+			}
+			tokens = append(tokens, te)
+			break
+		case []string:
+			tokens = append(tokens, ts)
+			for dv := range v.([]string) {
+				deepMarshal(k, dv)
+			}
+			tokens = append(tokens, te)
+			break
+		case []interface{}:
+			tokens = append(tokens, ts)
+			for dv := range v.([]interface{}) {
+				deepMarshal(k, dv)
 			}
 			tokens = append(tokens, te)
 			break
 		case interface{}:
+			if (reflect.ValueOf(v).Kind() == reflect.Ptr) {
+				tokens = append(tokens, ts)
+				tokens = append(tokens, te)
+				break
+			}
 			tv := structs.Map(v)
 			tokens = append(tokens, ts)
 			for dk, dv := range tv {
-				tokens = deepMarshal(dk, dv)
+				deepMarshal(dk, dv)
 			}
 			tokens = append(tokens, te)
 			break
+		default:
+			return fmt.Errorf("UNKNOWN TYPE\nKEY: %s\nTYPE: %s\n", k, reflect.TypeOf(v))
 	}
 
-	return tokens
+	return nil
 }
 
 // startToken initiate body of the envelope
