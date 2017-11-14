@@ -99,8 +99,6 @@ func deepMarshal(k string, v interface{}) error {
 			break
 		case interface{}:
 			if (reflect.ValueOf(v).Kind() == reflect.Ptr) {
-				tokens = append(tokens, ts)
-				tokens = append(tokens, te)
 				break
 			}
 			tv := structs.Map(v)
