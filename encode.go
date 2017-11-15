@@ -60,9 +60,34 @@ func deepMarshal(k string, v interface{}) error {
 	te := xml.EndElement{Name: ts.Name}
 
 	switch v.(type) {
+		case *big.Float:
+			bigFloat := *v.(*big.Float)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigFloat.String())), te)
+			break
+		case big.Float:
+			bigFloat := v.(big.Float)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigFloat.String())), te)
+			break
+		case *big.Int:
+			bigInt := *v.(*big.Int)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigInt.String())), te)
+			break
+		case big.Int:
+			bigInt := v.(big.Int)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigInt.String())), te)
+			break
+		case *big.Rat:
+			bigRat := *v.(*big.Rat)
+			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigRat.FloatString(16))), te)
+			break
 		case big.Rat:
 			bigRat := v.(big.Rat)
 			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigRat.FloatString(16))), te)
+			break
+		case *int:
+			if v != nil && v.(*int) != nil {
+				tokens = append(tokens, ts, xml.CharData(strconv.Itoa(*v.(*int))), te)
+			}
 			break
 		case int:
 			tokens = append(tokens, ts, xml.CharData(strconv.Itoa(v.(int))), te)
