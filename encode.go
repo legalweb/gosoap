@@ -61,24 +61,30 @@ func deepMarshal(k string, v interface{}) error {
 
 	switch v.(type) {
 		case *big.Float:
-			bigFloat := *v.(*big.Float)
-			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigFloat.String())), te)
+			if v != nil && v.(*big.Float) != nil {
+				bigFloat := *v.(*big.Float)
+				tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigFloat.String())), te)
+			}
 			break
 		case big.Float:
 			bigFloat := v.(big.Float)
 			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigFloat.String())), te)
 			break
 		case *big.Int:
-			bigInt := *v.(*big.Int)
-			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigInt.String())), te)
+			if v != nil && v.(*big.Int) != nil {
+				bigInt := *v.(*big.Int)
+				tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigInt.String())), te)
+			}
 			break
 		case big.Int:
 			bigInt := v.(big.Int)
 			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigInt.String())), te)
 			break
 		case *big.Rat:
-			bigRat := *v.(*big.Rat)
-			tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigRat.FloatString(16))), te)
+			if v != nil && v.(*big.Rat) != nil {
+				bigRat := *v.(*big.Rat)
+				tokens = append(tokens, ts, xml.CharData(fmt.Sprintf("%s", bigRat.FloatString(16))), te)
+			}
 			break
 		case big.Rat:
 			bigRat := v.(big.Rat)
