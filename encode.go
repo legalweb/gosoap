@@ -116,14 +116,14 @@ func deepMarshal(k string, v interface{}) error {
 			break
 		case []string:
 			tokens = append(tokens, ts)
-			for dv := range v.([]string) {
+			for _, dv := range v.([]string) {
 				deepMarshal("string", dv)
 			}
 			tokens = append(tokens, te)
 			break
 		case []interface{}:
 			tokens = append(tokens, ts)
-			for dv := range v.([]interface{}) {
+			for _, dv := range v.([]interface{}) {
 				deepMarshal(k, dv)
 			}
 			tokens = append(tokens, te)
